@@ -605,6 +605,8 @@
     <Compile Include="Market\Servers\Bybit\BybitServerPermission.cs" />
     <Compile Include="Market\Servers\Bybit\Entities\ResponseRestMessage.cs" />
     <Compile Include="Market\Servers\Bybit\Entities\ResponseWebSocketMessage.cs" />
+    <Compile Include="Market\Servers\CoinW\CoinWSpot\CoinWSpotServer.cs" />
+    <Compile Include="Market\Servers\CoinW\CoinWSpot\CoinWSpotServerPermission.cs" />
     <Compile Include="Market\Servers\Deribit\DeribitServer.cs" />
     <Compile Include="Market\Servers\Deribit\DeribitServerPermission.cs" />
     <Compile Include="Market\Servers\Deribit\Entity\JsonRequest.cs" />
@@ -1916,6 +1918,10 @@
   <ItemGroup>
     <Resource Include="Images\MainWIndow\alor1.png" />
     <Resource Include="Images\MainWIndow\alor2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Market\Servers\CoinW\CoinWFutures\Json\" />
+    <Folder Include="Market\Servers\CoinW\CoinWSpot\Json\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Grpc.Core.2.46.6\build\net45\Grpc.Core.targets" Condition="Exists('..\packages\Grpc.Core.2.46.6\build\net45\Grpc.Core.targets')" />
