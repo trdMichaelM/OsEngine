@@ -58,6 +58,7 @@ using OsEngine.Market.Servers.MoexAlgopack;
 using OsEngine.Market.Servers.HTX.Spot;
 using OsEngine.Market.Servers.HTX.Futures;
 using OsEngine.Market.Servers.HTX.Swap;
+using OsEngine.Market.Servers.CoinW.CoinWSpot;
 
 namespace OsEngine.Market
 {
@@ -201,6 +202,7 @@ namespace OsEngine.Market
                 serverTypes.Add(ServerType.InteractiveBrokers);
                 serverTypes.Add(ServerType.NinjaTrader);
                 serverTypes.Add(ServerType.Lmax);
+                serverTypes.Add(ServerType.CoinWSpot);
                 
 
                 serverTypes.Add(ServerType.AstsBridge);
@@ -300,6 +302,7 @@ namespace OsEngine.Market
                 serverTypes.Add(ServerType.Bybit);
                 serverTypes.Add(ServerType.OKX);
                 serverTypes.Add(ServerType.Woo);
+                serverTypes.Add(ServerType.CoinWSpot);
 
                 return serverTypes;
             }
@@ -551,6 +554,10 @@ namespace OsEngine.Market
                 else if (type == ServerType.HTXSwap)
                 {
                     newServer = new HTXSwapServer();
+                }
+                else if (type == ServerType.CoinWSpot)
+                {
+                    newServer = new CoinWSpotServer();
                 }
 
                 if (newServer == null)
@@ -1120,6 +1127,10 @@ namespace OsEngine.Market
                 {
                     serverPermission = new HTXSwapServerPermission();
                 }
+                else if (type == ServerType.CoinWSpot)
+                {
+                    serverPermission = new CoinWSpotServerPermission();
+                }
 
                 if (serverPermission != null)
                 {
@@ -1540,5 +1551,10 @@ namespace OsEngine.Market
         /// HTXSwap exchange
         /// </summary>
         HTXSwap,
+
+        /// <summary>
+        /// CoinW Spot exchange
+        /// </summary>
+        CoinWSpot,
     }
 }
