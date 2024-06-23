@@ -294,7 +294,31 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         {
             try
             {
-                UpdateSecurity(string.Empty);
+                HttpResponseMessage responseMessage = httpClient.GetAsync(baseUrl + "/api/v1/public?command=returnSymbol").Result;
+
+                if (responseMessage.IsSuccessStatusCode)
+                {
+                    string responseContent = responseMessage.Content.ReadAsStringAsync().Result;
+                    ResponseMessageRest<List<TradingPair>> responseMessageRest = JsonConvert.DeserializeObject<ResponseMessageRest<List<TradingPair>>>(responseContent);
+
+                    if (responseMessageRest == null)
+                    {
+                        SendLogMessage("No securities from CoinW.", LogMessageType.Error);
+                        return;
+                    }
+
+                    if (responseMessageRest.code != 200.ToString())
+                    {
+                        SendLogMessage("No securities from CoinW. " + "Code: " + responseMessageRest.code, LogMessageType.Error);
+                        return;
+                    }
+
+                    UpdateSecurity(responseMessageRest.data);
+                }
+                else
+                {
+                    SendLogMessage("No securities from CoinW. " + "Code: " + responseMessage.StatusCode, LogMessageType.Error);
+                } 
             }
             catch (Exception e) 
             {
@@ -302,7 +326,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             }
         }
 
-        private void UpdateSecurity(string json)
+        private void UpdateSecurity(List<TradingPair> tradingPair)
         {
             List<Security> securities = new List<Security>();
 
