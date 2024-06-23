@@ -8,7 +8,10 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 {
     public class CoinWSpotServerPermission : IServerPermission
     {
-        public ServerType ServerType => throw new NotImplementedException();
+        public ServerType ServerType
+        {
+            get { return ServerType.CoinWSpot; }
+        }
 
         public bool DataFeedTf1SecondCanLoad => throw new NotImplementedException();
 
@@ -54,7 +57,10 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public TimeFramePermission TradeTimeFramePermission => throw new NotImplementedException();
 
-        public int WaitTimeSecondsAfterFirstStartToSendOrders => throw new NotImplementedException();
+        public int WaitTimeSecondsAfterFirstStartToSendOrders
+        {
+            get { return 1; }
+        }
 
         public bool UseStandartCandlesStarter => throw new NotImplementedException();
 
@@ -64,8 +70,14 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public string[] ManuallyClosePositionOnBoard_ExceptionPositionNames => throw new NotImplementedException();
 
-        public bool CanQueryOrdersAfterReconnect => throw new NotImplementedException();
+        public bool CanQueryOrdersAfterReconnect
+        {
+            get { return false; }
+        }
 
-        public bool CanQueryOrderStatus => throw new NotImplementedException();
+        public bool CanQueryOrderStatus
+        {
+            get { return false; }
+        }
     }
 }
