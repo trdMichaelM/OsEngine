@@ -65,7 +65,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
                     if (webSocket != null && webSocket.State == WebSocketState.Open)
                     {
-                        lock(socketLocker)
+                        lock (socketLocker)
                         {
                             webSocket.Send("2"); // Socket.IO
                         }
@@ -92,44 +92,44 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 return;
             }
 
-            HttpResponseMessage responseMessage = httpClient.GetAsync(baseUrl + "/pusher/public-token").Result;
-
-            if (responseMessage.IsSuccessStatusCode)
+            try
             {
-                string responseContent = responseMessage.Content.ReadAsStringAsync().Result;
-                ResponseMessageRest<WebSocketInformation> responseMessageRest = JsonConvert.DeserializeObject<ResponseMessageRest<WebSocketInformation>>(responseContent);
+                HttpResponseMessage responseMessage = httpClient.GetAsync(baseUrl + "/pusher/public-token").Result;
 
-                if (responseMessageRest == null)
+                if (responseMessage.IsSuccessStatusCode)
                 {
-                    SendLogMessage("Can`t run CoinW Spot connector. No identity information required for WebSocket connection", LogMessageType.Error);
-                    return;
-                }
+                    string responseContent = responseMessage.Content.ReadAsStringAsync().Result;
+                    ResponseMessageRest<WebSocketInformation> responseMessageRest = JsonConvert.DeserializeObject<ResponseMessageRest<WebSocketInformation>>(responseContent);
 
-                if (responseMessageRest.code != 200.ToString())
-                {
-                    SendLogMessage("Can`t run CoinW Spot connector. " + "Code: " + responseMessageRest.code, LogMessageType.Error);
-                    return;
-                }
+                    if (responseMessageRest == null)
+                    {
+                        SendLogMessage("Can`t run CoinW Spot connector. No identity information required for WebSocket connection", LogMessageType.Error);
+                        return;
+                    }
 
-                webSocketInformation = responseMessageRest.data;
+                    if (responseMessageRest.code != 200.ToString())
+                    {
+                        SendLogMessage("Can`t run CoinW Spot connector. " + "Code: " + responseMessageRest.code, LogMessageType.Error);
+                        return;
+                    }
 
-                try
-                {
+                    webSocketInformation = responseMessageRest.data;
+
                     webSocketMessages = new ConcurrentQueue<string>();
 
                     CreateWebSocketConnection();
                 }
-                catch (Exception ex)
+                else
                 {
-                    SendLogMessage(ex.ToString(), LogMessageType.Error);
-                    SendLogMessage("Connection can be open. CoinW. Error request", LogMessageType.Error);
+                    SendLogMessage("Connection cannot be open. CoinW. Error request", LogMessageType.Error);
                     ServerStatus = ServerConnectStatus.Disconnect;
                     DisconnectEvent();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                SendLogMessage("Connection cannot be open. CoinW. Error request", LogMessageType.Error);
+                SendLogMessage(ex.ToString(), LogMessageType.Error);
+                SendLogMessage("Connection can be open. CoinW. Error request", LogMessageType.Error);
                 ServerStatus = ServerConnectStatus.Disconnect;
                 DisconnectEvent();
             }
@@ -139,7 +139,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         {
             string endpoint = webSocketInformation.endpoint;
             string token = webSocketInformation.token;
-            string pingInterval = webSocketInformation.pingInterval;
+            //string pingInterval = webSocketInformation.pingInterval;
 
             string url = $"{endpoint}/socket.io/?token={token}&EIO=3&transport=websocket";
 
@@ -318,9 +318,9 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 else
                 {
                     SendLogMessage("No securities from CoinW. " + "Code: " + responseMessage.StatusCode, LogMessageType.Error);
-                } 
+                }
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 SendLogMessage(e.ToString(), LogMessageType.Error);
             }
