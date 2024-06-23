@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using WebSocket4Net;
 
 namespace OsEngine.Market.Servers.CoinW.CoinWSpot
@@ -35,12 +36,46 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         private WebSocketInformation webSocketInformation;
         private WebSocket webSocket;
         private ConcurrentQueue<string> webSocketMessages;
+        private string socketLocker = "webSocketLockerCoinW";
 
         public CoinWSpotServerRealization()
         {
             ServerStatus = ServerConnectStatus.Disconnect;
 
             // Threads should be here...
+            Thread sendPingWebSocketThread = new Thread(SendPingWebSocket);
+            sendPingWebSocketThread.IsBackground = true;
+            sendPingWebSocketThread.Name = "SendPingWebSocket";
+            sendPingWebSocketThread.Start();
+        }
+
+        private void SendPingWebSocket()
+        {
+            int pingInterval = 10_000;
+            while (true)
+            {
+                try
+                {
+                    if (webSocketInformation != null)
+                    {
+                        pingInterval = Convert.ToInt32(webSocketInformation.pingInterval);
+                    }
+
+                    Thread.Sleep(pingInterval);
+
+                    if (webSocket != null && webSocket.State == WebSocketState.Open)
+                    {
+                        lock(socketLocker)
+                        {
+                            webSocket.Send("2"); // Socket.IO
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    SendLogMessage(e.ToString(), LogMessageType.Error);
+                }
+            }
         }
 
         public DateTime ServerTime { get; set; }
@@ -109,8 +144,8 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             string url = $"{endpoint}/socket.io/?token={token}&EIO=3&transport=websocket";
 
             webSocket = new WebSocket(url);
-            webSocket.EnableAutoSendPing = true;
-            webSocket.AutoSendPingInterval = Convert.ToInt32(pingInterval);
+            //webSocket.EnableAutoSendPing = true;
+            //webSocket.AutoSendPingInterval = Convert.ToInt32(pingInterval);
 
             webSocket.Opened += WebSocket_Opened;
             webSocket.Closed += WebSocket_Closed;
@@ -252,12 +287,28 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public void GetPortfolios()
         {
-            throw new NotImplementedException();
+
         }
 
         public void GetSecurities()
         {
-            throw new NotImplementedException();
+            try
+            {
+                UpdateSecurity(string.Empty);
+            }
+            catch (Exception e) 
+            {
+                SendLogMessage(e.ToString(), LogMessageType.Error);
+            }
+        }
+
+        private void UpdateSecurity(string json)
+        {
+            List<Security> securities = new List<Security>();
+
+            Security security = new Security();
+            security.Exchange = ServerType.CoinWSpot.ToString();
+            //security.Lot = 
         }
 
         public List<Trade> GetTickDataToSecurity(Security security, DateTime startTime, DateTime endTime, DateTime actualTime)
