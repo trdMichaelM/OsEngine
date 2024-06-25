@@ -8,7 +8,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using WebSocket4Net;
@@ -43,10 +42,10 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             ServerStatus = ServerConnectStatus.Disconnect;
 
             // Threads should be here...
-            Thread sendPingWebSocketThread = new Thread(SendPingWebSocket);
-            sendPingWebSocketThread.IsBackground = true;
-            sendPingWebSocketThread.Name = "SendPingWebSocket";
-            sendPingWebSocketThread.Start();
+            Thread sendPingWebSocket = new Thread(SendPingWebSocket);
+            sendPingWebSocket.IsBackground = true;
+            sendPingWebSocket.Name = "SendPingWebSocket";
+            sendPingWebSocket.Start();
         }
 
         private void SendPingWebSocket()
@@ -118,6 +117,9 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                     webSocketMessages = new ConcurrentQueue<string>();
 
                     CreateWebSocketConnection();
+
+                    ServerStatus = ServerConnectStatus.Connect;
+                    ConnectEvent();
                 }
                 else
                 {
@@ -162,9 +164,6 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             webSocket.Send("5");
 
             SendLogMessage("Websocket connection open", LogMessageType.System);
-
-            ServerStatus = ServerConnectStatus.Connect;
-            ConnectEvent();
         }
 
         private void WebSocket_Closed(object sender, EventArgs e)
