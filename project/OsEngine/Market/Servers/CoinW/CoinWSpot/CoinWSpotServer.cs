@@ -302,13 +302,14 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
                     if (responseMessageRest == null)
                     {
-                        SendLogMessage("No securities from CoinW.", LogMessageType.Error);
+                        SendLogMessage("No securities from CoinW Spot. Can't parse list of Trading Pairs", LogMessageType.Error);
                         return;
                     }
-
+                    
                     if (responseMessageRest.code != 200.ToString())
                     {
-                        SendLogMessage("No securities from CoinW. " + "Code: " + responseMessageRest.code, LogMessageType.Error);
+                        SendLogMessage($"No securities from CoinW Spot. Code: {responseMessageRest.code}\n" +
+                            $"Message: {responseMessageRest.msg}", LogMessageType.Error);
                         return;
                     }
 
@@ -316,7 +317,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 }
                 else
                 {
-                    SendLogMessage("No securities from CoinW. " + "Code: " + responseMessage.StatusCode, LogMessageType.Error);
+                    SendLogMessage($"No securities from CoinW Spot. Code: {responseMessage.StatusCode}", LogMessageType.Error);
                 }
             }
             catch (Exception e)
@@ -325,7 +326,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             }
         }
 
-        private void UpdateSecurity(List<TradingPair> tradingPair)
+        private void UpdateSecurity(List<TradingPair> tradingPairs)
         {
             List<Security> securities = new List<Security>();
 
