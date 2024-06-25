@@ -330,9 +330,46 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         {
             List<Security> securities = new List<Security>();
 
-            Security security = new Security();
-            security.Exchange = ServerType.CoinWSpot.ToString();
-            //security.Lot = 
+            for (int i = 0; i < tradingPairs.Count; i++)
+            {
+                TradingPair tradingPair = tradingPairs[i];
+
+                Security security = new Security();
+                security.Name = tradingPair.currencyBase;
+                security.NameFull = tradingPair.currencyPair;
+                security.NameClass = tradingPair.currencyQuote;
+                security.NameId = tradingPair.currencyPair;
+                security.Exchange = ServerType.CoinWSpot.ToString();
+                security.State = SecurityStateType.Activ;
+                security.Decimals = Convert.ToInt32(tradingPair.pricePrecision);
+                security.PriceStep = GetPrecisionValue(Convert.ToInt32(tradingPair.pricePrecision));
+                security.Lot = GetPrecisionValue(Convert.ToInt32(tradingPair.countPrecision));
+                security.PriceStepCost = security.PriceStep;
+                security.DecimalsVolume = Convert.ToInt32(tradingPair.countPrecision);
+                security.SecurityType = SecurityType.CurrencyPair;
+                
+                securities.Add(security);
+            }
+
+            SecurityEvent(securities);
+        }
+
+        private decimal GetPrecisionValue(int precision)
+        {
+            if (precision == 0)
+            {
+                return 1;
+            }
+
+            string value = "0.";
+            for (int i = 0; i < precision - 1; i++)
+            {
+                value += "0";
+            }
+
+            value += "1";
+
+            return value.ToDecimal();
         }
 
         public List<Trade> GetTickDataToSecurity(Security security, DateTime startTime, DateTime endTime, DateTime actualTime)
