@@ -7,7 +7,9 @@ using OsEngine.Market.Servers.Entity;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using WebSocket4Net;
@@ -29,13 +31,14 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
     public class CoinWSpotServerRealization : IServerRealization
     {
-        private readonly string baseUrl = "https://www.coinw.com";
+        private readonly string host = "https://www.coinw.com";
         private readonly HttpClient httpClient = new HttpClient();
 
         private WebSocketInformation webSocketInformation;
         private WebSocket webSocket;
         private ConcurrentQueue<string> webSocketMessages;
         private string socketLocker = "webSocketLockerCoinW";
+        private Portfolio portfolio;
 
         public CoinWSpotServerRealization()
         {
@@ -93,7 +96,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
             try
             {
-                HttpResponseMessage responseMessage = httpClient.GetAsync(baseUrl + "/pusher/public-token").Result;
+                HttpResponseMessage responseMessage = httpClient.GetAsync(host + "/pusher/public-token").Result;
 
                 if (responseMessage.IsSuccessStatusCode)
                 {
@@ -286,26 +289,123 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public void GetPortfolios()
         {
+            // AllBalances POST /api/v1/private?command=returnCompleteBalances
+            try
+            {
+                Dictionary<string, string> parameters = new Dictionary<string, string>();
+                parameters.Add("api_key", publicKey);
+                SortedDictionary<string, string> sortedParameters = new SortedDictionary<string, string>(parameters);
+                List<KeyValuePair<string, string>> sortedParametersList = sortedParameters.ToList();
+                string line = string.Empty;
+                for (int i = 0; i < sortedParametersList.Count; i++)
+                {
+                    line += $"{sortedParametersList[i].Key}={sortedParametersList[i].Value}";
+                    line += "&";
+                }
 
+                line += $"secret_key={secretKey}";
+                string signature = CreateMD5(line);
+                parameters.Add("sign", signature);
+                FormUrlEncodedContent content = new FormUrlEncodedContent(parameters);
+
+                HttpResponseMessage responseMessage = httpClient.PostAsync($"{host}/api/v1/private?command=returnCompleteBalances", content).Result;
+                if (responseMessage.IsSuccessStatusCode)
+                {
+                    string responseBody = responseMessage.Content.ReadAsStringAsync().Result;
+                    ResponseMessageRest<Dictionary<string, AllBalances>> responseMessageRest = JsonConvert.DeserializeObject<ResponseMessageRest<Dictionary<string, AllBalances>>>(responseBody);
+                    if (responseMessageRest == null)
+                    {
+                        SendLogMessage("No portfolios from CoinW Spot. Can't parse ResponseMessageRest with AllBalances", LogMessageType.Error);
+                        return;
+                    }
+
+                    if (responseMessageRest.code != 200.ToString())
+                    {
+                        SendLogMessage($"No portfolios from CoinW Spot. Code: {responseMessageRest.code}\n" +
+                            $"Message: {responseMessageRest.msg}", LogMessageType.Error);
+                        return;
+                    }
+
+                    UpdatePortfolio(responseMessageRest.data);
+                }
+                else
+                {
+                    SendLogMessage($"No response message with Portfolios from CoinW Spot. Code: {responseMessage.StatusCode}", LogMessageType.Error);
+                }
+
+            }
+            catch (Exception e)
+            {
+                SendLogMessage(e.ToString(), LogMessageType.Error);
+            }
+        }
+
+        private void UpdatePortfolio(Dictionary<string, AllBalances> allBalances)
+        {
+            try
+            {
+                portfolio = new Portfolio();
+                portfolio.Number = "CoinW_Spot";
+                portfolio.ValueBegin = 1;
+                portfolio.ValueCurrent = 1;
+
+                List<KeyValuePair<string, AllBalances>> allBalancesList = allBalances.ToList();
+
+                if (allBalances == null || allBalancesList.Count == 0)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < allBalancesList.Count; i++)
+                {
+                    PositionOnBoard positionOnBoard = new PositionOnBoard();
+                    positionOnBoard.SecurityNameCode = allBalancesList[i].Key;
+                    positionOnBoard.ValueBegin = allBalancesList[i].Value.available.ToDecimal();
+                    positionOnBoard.ValueCurrent = allBalancesList[i].Value.available.ToDecimal();
+                    positionOnBoard.ValueBlocked = allBalancesList[i].Value.onOrders.ToDecimal();
+                    portfolio.SetNewPosition(positionOnBoard);
+                }
+
+                PortfolioEvent(new List<Portfolio> { portfolio });
+            }
+            catch (Exception e)
+            {
+                SendLogMessage($"{e.Message} {e.StackTrace}", LogMessageType.Error);
+            }
+        }
+
+        private string CreateMD5(string input)
+        {
+            using (MD5 md5 = MD5.Create())
+            {
+                byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+                byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < hashBytes.Length; i++)
+                {
+                    sb.Append(hashBytes[i].ToString("X2"));
+                }
+                return sb.ToString();
+            }
         }
 
         public void GetSecurities()
         {
             try
             {
-                HttpResponseMessage responseMessage = httpClient.GetAsync(baseUrl + "/api/v1/public?command=returnSymbol").Result;
+                HttpResponseMessage responseMessage = httpClient.GetAsync(host + "/api/v1/public?command=returnSymbol").Result;
 
                 if (responseMessage.IsSuccessStatusCode)
                 {
                     string responseContent = responseMessage.Content.ReadAsStringAsync().Result;
                     ResponseMessageRest<List<TradingPair>> responseMessageRest = JsonConvert.DeserializeObject<ResponseMessageRest<List<TradingPair>>>(responseContent);
-
                     if (responseMessageRest == null)
                     {
                         SendLogMessage("No securities from CoinW Spot. Can't parse list of Trading Pairs", LogMessageType.Error);
                         return;
                     }
-                    
+
                     if (responseMessageRest.code != 200.ToString())
                     {
                         SendLogMessage($"No securities from CoinW Spot. Code: {responseMessageRest.code}\n" +
@@ -335,41 +435,23 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 TradingPair tradingPair = tradingPairs[i];
 
                 Security security = new Security();
-                security.Name = tradingPair.currencyBase;
+                security.Name = tradingPair.currencyPair;
                 security.NameFull = tradingPair.currencyPair;
                 security.NameClass = tradingPair.currencyQuote;
                 security.NameId = tradingPair.currencyPair;
                 security.Exchange = ServerType.CoinWSpot.ToString();
                 security.State = SecurityStateType.Activ;
                 security.Decimals = Convert.ToInt32(tradingPair.pricePrecision);
-                security.PriceStep = GetPrecisionValue(Convert.ToInt32(tradingPair.pricePrecision));
-                security.Lot = GetPrecisionValue(Convert.ToInt32(tradingPair.countPrecision));
-                security.PriceStepCost = security.PriceStep;
                 security.DecimalsVolume = Convert.ToInt32(tradingPair.countPrecision);
+                security.PriceStep = security.Decimals.GetValueByDecimals();
+                security.Lot = security.DecimalsVolume.GetValueByDecimals();
+                security.PriceStepCost = security.PriceStep;
                 security.SecurityType = SecurityType.CurrencyPair;
-                
+
                 securities.Add(security);
             }
 
             SecurityEvent(securities);
-        }
-
-        private decimal GetPrecisionValue(int precision)
-        {
-            if (precision == 0)
-            {
-                return 1;
-            }
-
-            string value = "0.";
-            for (int i = 0; i < precision - 1; i++)
-            {
-                value += "0";
-            }
-
-            value += "1";
-
-            return value.ToDecimal();
         }
 
         public List<Trade> GetTickDataToSecurity(Security security, DateTime startTime, DateTime endTime, DateTime actualTime)
