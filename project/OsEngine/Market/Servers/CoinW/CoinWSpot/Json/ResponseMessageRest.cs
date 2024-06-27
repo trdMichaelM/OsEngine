@@ -15,6 +15,17 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot.Json
         public string success;
     }
 
+    public class KLineData
+    {
+        public string date;
+        public string high;
+        public string low;
+        public string open;
+        public string close;
+        public string volume;
+
+    }
+
     public class WebSocketInformation
     {
         public string token;

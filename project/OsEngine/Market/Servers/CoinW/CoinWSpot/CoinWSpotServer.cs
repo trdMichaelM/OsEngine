@@ -274,7 +274,98 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public List<Candle> GetCandleDataToSecurity(Security security, TimeFrameBuilder timeFrameBuilder, DateTime startTime, DateTime endTime, DateTime actualTime)
         {
+            string period = timeFrameBuilder.TimeFrameTimeSpan.TotalSeconds.ToString();
+            string securityId = security.NameId;
 
+            if (startTime > actualTime)
+            {
+                startTime = actualTime;
+            }
+
+            string start = ((DateTimeOffset)startTime).ToUnixTimeSeconds().ToString();
+            string end = ((DateTimeOffset)endTime).ToUnixTimeSeconds().ToString();
+
+            try
+            {
+                Dictionary<string, string> parameters = new Dictionary<string, string>();
+                parameters.Add("command", "returnChartData");
+                parameters.Add("period", period);
+                parameters.Add("currencyPair", securityId);
+                parameters.Add("start", start);
+                parameters.Add("end", end);
+
+                SortedDictionary<string, string> sortedParameters = new SortedDictionary<string, string>(parameters);
+                List<KeyValuePair<string, string>> sortedParametersList = sortedParameters.ToList();
+
+                string line = string.Empty;
+                for (int i = 0; i < sortedParametersList.Count; i++)
+                {
+                    line += $"{sortedParametersList[i].Key}={sortedParametersList[i].Value}";
+                    line += "&";
+                }
+                line = line.Substring(0, line.Length - 1);
+
+                HttpResponseMessage responseMessage = httpClient.GetAsync($"{host}/api/v1/public?{line}").Result;
+
+                if (responseMessage.IsSuccessStatusCode)
+                {
+                    string responseContent = responseMessage.Content.ReadAsStringAsync().Result;
+                    ResponseMessageRest<List<Dictionary<string, string>>> responseMessageRest = JsonConvert.DeserializeObject<ResponseMessageRest<List<Dictionary<string, string>>>>(responseContent);
+                    if (responseMessageRest == null)
+                    {
+                        SendLogMessage("No candle from CoinW Spot. Can't parse list of candles", LogMessageType.Error);
+                        return null;
+                    }
+
+                    if (responseMessageRest.code != 200.ToString())
+                    {
+                        SendLogMessage($"No candles from CoinW Spot. Code: {responseMessageRest.code}\n" +
+                            $"Message: {responseMessageRest.msg}", LogMessageType.Error);
+                        return null;
+                    }
+
+                    return GetCandles(responseMessageRest.data);
+                }
+                else
+                {
+                    SendLogMessage($"No candles from CoinW Spot. Code: {responseMessage.StatusCode}", LogMessageType.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                SendLogMessage(ex.ToString(), LogMessageType.Error);
+            }
+            return null;
+        }
+
+        private List<Candle> GetCandles(List<Dictionary<string, string>> data)
+        {
+            List<Candle> candles = new List<Candle>();
+
+            if (data == null || data.Count == 0)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                Dictionary<string, string> dataCandle = data[i];
+
+                Candle candle = new Candle();
+                candle.State = CandleState.Finished;
+                candle.TimeStart = DateTimeOffset.FromUnixTimeMilliseconds(Convert.ToInt64(dataCandle["date"])).UtcDateTime;
+                candle.Volume = dataCandle["volume"].ToDecimal();
+                candle.Open = dataCandle["open"].ToDecimal();
+                candle.Close = dataCandle["close"].ToDecimal();
+                candle.High = dataCandle["high"].ToDecimal();
+                candle.Low = dataCandle["low"].ToDecimal();
+
+                candles.Add(candle);
+            }
+
+            candles.Reverse();
+
+            return candles;
         }
 
         public List<Candle> GetLastCandleHistory(Security security, TimeFrameBuilder timeFrameBuilder, int candleCount)
@@ -456,7 +547,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public List<Trade> GetTickDataToSecurity(Security security, DateTime startTime, DateTime endTime, DateTime actualTime)
         {
-            throw new NotImplementedException();
+            return null;
         }
 
         public void SendOrder(Order order)

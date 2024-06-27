@@ -73,7 +73,7 @@
 
         public bool DataFeedTf1HourCanLoad
         {
-            get { return false; }
+            get { return true; }
         }
 
         public bool DataFeedTf2HourCanLoad
@@ -134,7 +134,7 @@
             TimeFrameMin20IsOn = false,
             TimeFrameMin30IsOn = true,
             TimeFrameMin45IsOn = false,
-            TimeFrameHour1IsOn = false,
+            TimeFrameHour1IsOn = true,
             TimeFrameHour2IsOn = true,
             TimeFrameHour4IsOn = true,
             TimeFrameDayIsOn = false
