@@ -274,7 +274,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public List<Candle> GetCandleDataToSecurity(Security security, TimeFrameBuilder timeFrameBuilder, DateTime startTime, DateTime endTime, DateTime actualTime)
         {
-            throw new NotImplementedException();
+
         }
 
         public List<Candle> GetLastCandleHistory(Security security, TimeFrameBuilder timeFrameBuilder, int candleCount)

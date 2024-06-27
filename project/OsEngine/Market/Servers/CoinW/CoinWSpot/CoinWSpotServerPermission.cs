@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OsEngine.Market.Servers.CoinW.CoinWSpot
+﻿namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 {
     public class CoinWSpotServerPermission : IServerPermission
     {
@@ -13,62 +7,163 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             get { return ServerType.CoinWSpot; }
         }
 
-        public bool DataFeedTf1SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf1SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf2SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf2SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf5SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf5SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf10SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf10SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf15SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf15SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf20SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf20SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf30SecondCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf30SecondCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf1MinuteCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf1MinuteCanLoad
+        {
+            get { return true; }
+        }
 
-        public bool DataFeedTf2MinuteCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf2MinuteCanLoad
+        {
+            get { return false; }
+        }
+        public bool DataFeedTf5MinuteCanLoad
+        {
+            get { return true; }
+        }
 
-        public bool DataFeedTf5MinuteCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf10MinuteCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf10MinuteCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf15MinuteCanLoad
+        {
+            get { return true; }
+        }
 
-        public bool DataFeedTf15MinuteCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf30MinuteCanLoad
+        {
+            get { return true; }
+        }
 
-        public bool DataFeedTf30MinuteCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf1HourCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTf1HourCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf2HourCanLoad
+        {
+            get { return true; }
+        }
 
-        public bool DataFeedTf2HourCanLoad => throw new NotImplementedException();
+        public bool DataFeedTf4HourCanLoad
+        {
+            get { return true; }
+        }
 
-        public bool DataFeedTf4HourCanLoad => throw new NotImplementedException();
+        public bool DataFeedTfTickCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTfTickCanLoad => throw new NotImplementedException();
+        public bool DataFeedTfMarketDepthCanLoad
+        {
+            get { return false; }
+        }
 
-        public bool DataFeedTfMarketDepthCanLoad => throw new NotImplementedException();
+        public bool MarketOrdersIsSupport
+        {
+            get { return true; }
+        }
 
-        public bool MarketOrdersIsSupport => throw new NotImplementedException();
+        public bool IsCanChangeOrderPrice
+        {
+            get { return true; }
+        }
 
-        public bool IsCanChangeOrderPrice => throw new NotImplementedException();
+        public bool IsUseLotToCalculateProfit
+        {
+            get { return false; }
+        }
 
-        public bool IsUseLotToCalculateProfit => throw new NotImplementedException();
+        public TimeFramePermission TradeTimeFramePermission
+        {
+            get { return timeFramePermission; }
+        }
 
-        public TimeFramePermission TradeTimeFramePermission => throw new NotImplementedException();
+        private TimeFramePermission timeFramePermission = new TimeFramePermission
+        {
+            TimeFrameSec1IsOn = false,
+            TimeFrameSec2IsOn = false,
+            TimeFrameSec5IsOn = false,
+            TimeFrameSec10IsOn = false,
+            TimeFrameSec15IsOn = false,
+            TimeFrameSec20IsOn = false,
+            TimeFrameSec30IsOn = false,
+            TimeFrameMin1IsOn = true,
+            TimeFrameMin2IsOn = false,
+            TimeFrameMin3IsOn = true,
+            TimeFrameMin5IsOn = true,
+            TimeFrameMin10IsOn = false,
+            TimeFrameMin15IsOn = true,
+            TimeFrameMin20IsOn = false,
+            TimeFrameMin30IsOn = true,
+            TimeFrameMin45IsOn = false,
+            TimeFrameHour1IsOn = false,
+            TimeFrameHour2IsOn = true,
+            TimeFrameHour4IsOn = true,
+            TimeFrameDayIsOn = false
+        };
 
         public int WaitTimeSecondsAfterFirstStartToSendOrders
         {
             get { return 1; }
         }
 
-        public bool UseStandartCandlesStarter => throw new NotImplementedException();
+        public bool UseStandartCandlesStarter
+        {
+            get { return true; }
+        }
 
-        public bool ManuallyClosePositionOnBoard_IsOn => throw new NotImplementedException();
+        public bool ManuallyClosePositionOnBoard_IsOn
+        {
+            get { return false; }
+        }
 
-        public string[] ManuallyClosePositionOnBoard_ValuesForTrimmingName => throw new NotImplementedException();
+        public string[] ManuallyClosePositionOnBoard_ValuesForTrimmingName
+        {
+            get { return null; }
+        }
 
-        public string[] ManuallyClosePositionOnBoard_ExceptionPositionNames => throw new NotImplementedException();
+        public string[] ManuallyClosePositionOnBoard_ExceptionPositionNames
+        {
+            get { return null; }
+        }
 
         public bool CanQueryOrdersAfterReconnect
         {
