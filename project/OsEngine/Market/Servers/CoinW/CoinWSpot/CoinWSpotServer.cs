@@ -285,27 +285,32 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             string start = ((DateTimeOffset)startTime).ToUnixTimeSeconds().ToString();
             string end = ((DateTimeOffset)endTime).ToUnixTimeSeconds().ToString();
 
+            return RequestCandlesHistory(securityId, period, start, end);
+        }
+
+        private List<Candle> RequestCandlesHistory(string security, string period, string start, string end)
+        {
             try
             {
                 Dictionary<string, string> parameters = new Dictionary<string, string>();
                 parameters.Add("command", "returnChartData");
                 parameters.Add("period", period);
-                parameters.Add("currencyPair", securityId);
+                parameters.Add("currencyPair", security);
                 parameters.Add("start", start);
                 parameters.Add("end", end);
 
                 SortedDictionary<string, string> sortedParameters = new SortedDictionary<string, string>(parameters);
                 List<KeyValuePair<string, string>> sortedParametersList = sortedParameters.ToList();
 
-                string line = string.Empty;
+                string query = string.Empty;
                 for (int i = 0; i < sortedParametersList.Count; i++)
                 {
-                    line += $"{sortedParametersList[i].Key}={sortedParametersList[i].Value}";
-                    line += "&";
+                    query += $"{sortedParametersList[i].Key}={sortedParametersList[i].Value}";
+                    query += "&";
                 }
-                line = line.Substring(0, line.Length - 1);
+                query = query.Substring(0, query.Length - 1);
 
-                HttpResponseMessage responseMessage = httpClient.GetAsync($"{host}/api/v1/public?{line}").Result;
+                HttpResponseMessage responseMessage = httpClient.GetAsync($"{host}/api/v1/public?{query}").Result;
 
                 if (responseMessage.IsSuccessStatusCode)
                 {
@@ -329,13 +334,14 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 else
                 {
                     SendLogMessage($"No candles from CoinW Spot. Code: {responseMessage.StatusCode}", LogMessageType.Error);
+                    return null;
                 }
             }
             catch (Exception ex)
             {
                 SendLogMessage(ex.ToString(), LogMessageType.Error);
+                return null;
             }
-            return null;
         }
 
         private List<Candle> GetCandles(List<Dictionary<string, string>> data)
