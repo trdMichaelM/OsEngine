@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -33,6 +34,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
     {
         private readonly string host = "https://www.coinw.com";
         private readonly HttpClient httpClient = new HttpClient();
+        private readonly Dictionary<string, Security> subscribedSecurities = new Dictionary<string, Security>();
 
         private WebSocketInformation webSocketInformation;
         private WebSocket webSocket;
@@ -378,10 +380,20 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         {
             string period = timeFrameBuilder.TimeFrameTimeSpan.TotalSeconds.ToString();
             string securityId = security.NameId;
-            string start = ((DateTimeOffset)(DateTime.UtcNow - TimeSpan.FromMinutes(timeFrameBuilder.TimeFrameTimeSpan.Minutes * candleCount))).ToUnixTimeSeconds().ToString();
+
+            int seconds = (int)(timeFrameBuilder.TimeFrameTimeSpan.TotalSeconds * candleCount * 1.3d);
+
+            string start = ((DateTimeOffset)DateTime.UtcNow.AddSeconds(-seconds)).ToUnixTimeSeconds().ToString();
             string end = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds().ToString();
 
-            return RequestCandlesHistory(securityId, period, start, end);
+            List<Candle> candles = RequestCandlesHistory(securityId, period, start, end);
+
+            while(candles.Count > candleCount)
+            {
+                candles.RemoveAt(0);
+            }
+
+            return candles;
         }
 
         public void GetOrderStatus(Order order)
@@ -450,7 +462,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 portfolio.Number = "CoinW_Spot";
                 portfolio.ValueBegin = 1;
                 portfolio.ValueCurrent = 1;
-
+                /*
                 List<KeyValuePair<string, AllBalances>> allBalancesList = allBalances.ToList();
 
                 if (allBalances == null || allBalancesList.Count == 0)
@@ -467,7 +479,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                     positionOnBoard.ValueBlocked = allBalancesList[i].Value.onOrders.ToDecimal();
                     portfolio.SetNewPosition(positionOnBoard);
                 }
-
+                */
                 PortfolioEvent(new List<Portfolio> { portfolio });
             }
             catch (Exception e)
@@ -568,7 +580,40 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public void Subscrible(Security security)
         {
-            throw new NotImplementedException();
+            try
+            {
+                if (!subscribedSecurities.ContainsKey(security.NameId))
+                {
+                    subscribedSecurities.Add(security.NameId, security);
+                }
+
+                SubscribeOrderBook(security.NameId);
+                SubscribeTransactionHistory(security.NameId);
+            }
+            catch (Exception ex)
+            {
+                SendLogMessage(ex.ToString(), LogMessageType.Error);
+            }
+        }
+
+        private void SubscribeTransactionHistory(string nameId)
+        {
+            string subscribeMessage = $"42[\"subscribe\",{{\"args\":\"spot/match:{nameId}\"}}]";
+
+            lock (socketLocker)
+            {
+                webSocket.Send(subscribeMessage);
+            }
+        }
+
+        private void SubscribeOrderBook(string nameId)
+        {
+            string subscribeMessage = $"42[\"subscribe\",{{\"args\":\"spot/level2:${nameId}\"}}]";
+
+            lock (socketLocker)
+            {
+                webSocket.Send(subscribeMessage);
+            }
         }
 
         #region Log
