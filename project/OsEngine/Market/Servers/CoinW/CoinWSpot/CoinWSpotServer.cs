@@ -9,7 +9,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -38,7 +37,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         private WebSocketInformation webSocketInformation;
         private WebSocket webSocket;
-        private ConcurrentQueue<string> webSocketMessages;
+        private ConcurrentQueue<string> webSocketPublicMessages;
         private string socketLocker = "webSocketLockerCoinW";
         private Portfolio portfolio;
 
@@ -46,16 +45,54 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         {
             ServerStatus = ServerConnectStatus.Disconnect;
 
-            // Threads should be here...
             Thread sendPingWebSocket = new Thread(SendPingWebSocket);
             sendPingWebSocket.IsBackground = true;
-            sendPingWebSocket.Name = "SendPingWebSocket";
+            sendPingWebSocket.Name = "SendPingWebSocketCoinWSpot";
             sendPingWebSocket.Start();
+
+            Thread publicMessageReader = new Thread(PublicMessageReader);
+            publicMessageReader.IsBackground = true;
+            publicMessageReader.Name = "PublicMessageReaderCoinWSpot";
+            publicMessageReader.Start();
+        }
+
+        private void PublicMessageReader()
+        {
+            Thread.Sleep(1000);
+
+            while (true)
+            {
+                try
+                {
+                    if (ServerStatus == ServerConnectStatus.Disconnect)
+                    {
+                        Thread.Sleep(2000);
+                        continue;
+                    }
+
+                    if (webSocketPublicMessages.IsEmpty)
+                    {
+                        Thread.Sleep(1);
+                        continue;
+                    }
+
+                    if (webSocketPublicMessages.TryDequeue(out string message))
+                    {
+                        // А вот тута парсим уже...
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Thread.Sleep(2000);
+                    SendLogMessage(ex.ToString(), LogMessageType.Error);
+                }
+            }
         }
 
         private void SendPingWebSocket()
         {
-            int pingInterval = 10_000;
+            int pingInterval = 10000;
             while (true)
             {
                 try
@@ -119,7 +156,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
                     webSocketInformation = responseMessageRest.data;
 
-                    webSocketMessages = new ConcurrentQueue<string>();
+                    webSocketPublicMessages = new ConcurrentQueue<string>();
 
                     CreateWebSocketConnection();
 
@@ -185,7 +222,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
         {
             try
             {
-                if (e == null || webSocketMessages == null)
+                if (e == null || webSocketPublicMessages == null)
                 {
                     return;
                 }
@@ -201,7 +238,7 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                 }
                 if (message.StartsWith("42")) // Event message Socket.IO
                 {
-                    webSocketMessages.Enqueue(message);
+                    webSocketPublicMessages.Enqueue(message);
                 }
             }
             catch (Exception ex)
@@ -587,8 +624,11 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
                     subscribedSecurities.Add(security.NameId, security);
                 }
 
-                SubscribeOrderBook(security.NameId);
-                SubscribeTransactionHistory(security.NameId);
+                // Для подписки на сокеты используется симвом с тире а не нижним подчеркиванием!
+                string symbol = security.NameId.Replace('_', '-');
+
+                SubscribeOrderBook(symbol);
+                SubscribeTransactionHistory(symbol);
             }
             catch (Exception ex)
             {
@@ -596,9 +636,9 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             }
         }
 
-        private void SubscribeTransactionHistory(string nameId)
+        private void SubscribeTransactionHistory(string symbol)
         {
-            string subscribeMessage = $"42[\"subscribe\",{{\"args\":\"spot/match:{nameId}\"}}]";
+            string subscribeMessage = $"42[\"subscribe\",{{\"args\":\"spot/match:{symbol}\"}}]";
 
             lock (socketLocker)
             {
@@ -606,13 +646,13 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
             }
         }
 
-        private void SubscribeOrderBook(string nameId)
+        private void SubscribeOrderBook(string symbol)
         {
-            string subscribeMessage = $"42[\"subscribe\",{{\"args\":\"spot/level2:${nameId}\"}}]";
+            string subscribeMessage = $"42[\"subscribe\",{{\"args\":\"spot/level2:{symbol}\"}}]";
 
             lock (socketLocker)
             {
-                webSocket.Send(subscribeMessage);
+                //webSocket.Send(subscribeMessage);
             }
         }
 
