@@ -376,7 +376,12 @@ namespace OsEngine.Market.Servers.CoinW.CoinWSpot
 
         public List<Candle> GetLastCandleHistory(Security security, TimeFrameBuilder timeFrameBuilder, int candleCount)
         {
-            throw new NotImplementedException();
+            string period = timeFrameBuilder.TimeFrameTimeSpan.TotalSeconds.ToString();
+            string securityId = security.NameId;
+            string start = ((DateTimeOffset)(DateTime.UtcNow - TimeSpan.FromMinutes(timeFrameBuilder.TimeFrameTimeSpan.Minutes * candleCount))).ToUnixTimeSeconds().ToString();
+            string end = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds().ToString();
+
+            return RequestCandlesHistory(securityId, period, start, end);
         }
 
         public void GetOrderStatus(Order order)
